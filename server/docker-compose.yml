@@ -1,11 +1,16 @@
 version: '3.7'
 
 services:
-  app:
-    image: node:12-alpine
-    command: sh -c "yarn dev"
+
+  mobilebw:
+    container_name: mobilebw-container
+    tty: true
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - '.:/app'
+      - '/app/node_modules'
     ports:
       - 3000:3000
-    working_dir: /app
-    volumes:
-      - ./:/app
+    

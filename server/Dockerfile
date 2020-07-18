@@ -10,6 +10,6 @@ COPY . .
 
 EXPOSE 3000
 
-RUN yarn knex:migration && knex:seed
+RUN yarn knex:migrate && yarn knex:seed
 
 CMD ["yarn", "dev"]
