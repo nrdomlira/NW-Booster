@@ -7,8 +7,8 @@ class CreatePointController {
 
         const { city, uf, items } = req.query;
         const parsedItems = String(items)
-                            .split(',')
-                            .map(item => Number(item.trim()));
+            .split(',')
+            .map(item => Number(item.trim()));
 
         const points = await knex('points')
             .join('point_items', 'points.id', '=', 'point_items.point_id')
@@ -18,8 +18,14 @@ class CreatePointController {
             .distinct()
             .select('points.*');
 
+        const serializedPoints = points.map(point => {
+            return {
+                ...points,
+                image_url: `http://192.168.25.2:3000/uploads/${point.image}`
+            };
+        })
 
-            return res.json(points);
+        return res.json(points);
 
     }
 
@@ -32,12 +38,18 @@ class CreatePointController {
             return res.status(400).json({ message: 'Ponto não encontrado' });
         }
 
+        const serializedPoint = {            
+                ...point,
+                image_url: `http://192.168.25.2:3000/uploads/${point.image}`
+            
+        };
+
         const items = await knex('items')
             .join('point_items', 'items.id', '=', 'point_items.item_id')
             .where('point_items.point_id', id)
             .select('items.title');
 
-        return res.json({ point, items })
+        return res.json({ point: serializedPoint, items })
     }
 
     async create(req: Request, res: Response) {
@@ -46,9 +58,9 @@ class CreatePointController {
 
         const trx = await knex.transaction();
 
-        
+
         const point = {
-            image: 'https://images.unsplash.com/photo-1501523460185-2aa5d2a0f981?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=500&q=60',
+            image: req.file.filename,
             name,
             email,
             whatsapp,
@@ -57,21 +69,23 @@ class CreatePointController {
             city,
             uf
         };
-        
-       /*  if(await (await trx('points')).find(name) === point.name){
-            throw new Error("Ponto já existe");
-            
-        } */
+
+        /*  if(await (await trx('points')).find(name) === point.name){
+             throw new Error("Ponto já existe");
+             
+         } */
         const insertedIds = await trx('points').insert(point);
 
         const point_id = insertedIds[0];
 
-        const pointItems = items.map((item_id: Number) => {
-            return {
-                item_id,
-                point_id,
-            };
-        });
+        const pointItems = items.split(',')
+            .map((item: string) => Number(item.trim()))
+            .map((item_id: Number) => {
+                return {
+                    item_id,
+                    point_id,
+                };
+            });
 
         await trx('point_items').insert(pointItems);
 
